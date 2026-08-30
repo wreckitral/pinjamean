@@ -1,0 +1,78 @@
+openapi: "3.0.3"
+info:
+  title: Pinjamean Origination
+  description: API for managing loan applications
+  version: 1.0.0
+servers:
+  - url: https://{hostname}/api
+    variables:
+      hostname:
+        default: localhost
+security:
+  - bearerAuth: []
+paths:
+  /applications:
+    post:
+      operationId: submitApplication
+      requestBody:
+        description: submit application to loan
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostApplications'
+      responses:
+        '204':
+          description: responses for submit applications
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PostApplications:
+      type: object
+      required:
+        - borrower_id
+        - loan_amount_idr
+        - term_months
+        - loan_type
+      properties:
+        borrower_id:
+          type: string
+          description: Unique identifier for the applicant.
+        loan_amount_idr:
+          type: integer
+          description: Total loan amount requested in Indonesian Rupiah (IDR).
+        term_months:
+          type: integer
+          description: Duration of the loan in months.
+        loan_type:
+          type: string
+          enum:
+            - KPR
+            - KKB
+            - KTA
+            - KMG
+            - KMK
+            - KUR
+          description: The category of the loan based on standard Indonesian lending products.
+    Error:
+      type: object
+      required:
+        - slug
+        - message
+      properties:
+        slug:
+          type: string
+          description: Machine-readable error code (e.g., invalid-loan-parameters).
+        message:
+          type: string
+          description: Human-readable error description.
