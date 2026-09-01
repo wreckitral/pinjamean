@@ -9,94 +9,63 @@ import (
 
 func TestNewApplication(t *testing.T) {
 	tests := []struct {
-		name            string
-		borrowerUUID    string
-		loanAmountIDR       int64
-		termMonths      int
-		loanType        application.LoanType
-		interestRateAPR float64
-		expectedErr     error
+		name         string
+		borrowerUUID string
+		loanAmountIDR int64
+		termMonths   int
+		loanType     application.LoanType
+		expectedAPR  float64
+		expectedErr  error
 	}{
 		{
-			name:            "valid KKB loan",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       150_000_000,
-			termMonths:      36,
-			loanType:        application.TypeKKB,
-			interestRateAPR: 10.5,
-			expectedErr:     nil,
+			name:          "valid KKB loan assigns 6.5 APR",
+			borrowerUUID:  "borrower-123",
+			loanAmountIDR: 150_000_000,
+			termMonths:    36,
+			loanType:      application.TypeKKB,
+			expectedAPR:   6.5,
+			expectedErr:   nil,
 		},
 		{
-			name:            "valid KUR exact APR",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       50_000_000,
-			termMonths:      12,
-			loanType:        application.TypeKUR,
-			interestRateAPR: 6.0,
-			expectedErr:     nil,
+			name:          "valid KUR exact assigns 6.0 APR",
+			borrowerUUID:  "borrower-123",
+			loanAmountIDR: 50_000_000,
+			termMonths:    12,
+			loanType:      application.TypeKUR,
+			expectedAPR:   6.0,
+			expectedErr:   nil,
 		},
 		{
-			name:            "empty borrower ID",
-			borrowerUUID:    "",
-			loanAmountIDR:       10_000_000,
-			termMonths:      12,
-			loanType:        application.TypeKTA,
-			interestRateAPR: 20.0,
-			expectedErr:     application.ErrMissingBorrower,
+			name:          "empty borrower ID",
+			borrowerUUID:  "",
+			loanAmountIDR: 10_000_000,
+			termMonths:    12,
+			loanType:      application.TypeKTA,
+			expectedErr:   application.ErrMissingBorrower,
 		},
 		{
-			name:            "zero amount",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       0,
-			termMonths:      12,
-			loanType:        application.TypeKTA,
-			interestRateAPR: 20.0,
-			expectedErr:     application.ErrInvalidAmount,
+			name:          "zero amount",
+			borrowerUUID:  "borrower-123",
+			loanAmountIDR: 0,
+			termMonths:    12,
+			loanType:      application.TypeKTA,
+			expectedErr:   application.ErrInvalidAmount,
 		},
 		{
-			name:            "invalid term months",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       10_000_000,
-			termMonths:      0,
-			loanType:        application.TypeKTA,
-			interestRateAPR: 20.0,
-			expectedErr:     application.ErrInvalidTerm,
+			name:          "invalid term months",
+			borrowerUUID:  "borrower-123",
+			loanAmountIDR: 10_000_000,
+			termMonths:    0,
+			loanType:      application.TypeKTA,
+			expectedErr:   application.ErrInvalidTerm,
 		},
 		{
-			name:            "unsupported loan type",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       10_000_000,
-			termMonths:      12,
-			loanType:        "INVALID_TYPE",
-			interestRateAPR: 10.0,
-			expectedErr:     application.ErrUnsupportedType,
-		},
-		{
-			name:            "KPR APR too low",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       500_000_000,
-			termMonths:      120,
-			loanType:        application.TypeKPR,
-			interestRateAPR: 6.9, // Min is 7.0
-			expectedErr:     application.ErrAPRTooLow,
-		},
-		{
-			name:            "KPR APR exactly min (Boundary)",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       500_000_000,
-			termMonths:      120,
-			loanType:        application.TypeKPR,
-			interestRateAPR: 7.0, // Min is 7.0
-			expectedErr:     nil,
-		},
-		{
-			name:            "KTA APR too high",
-			borrowerUUID:    "borrower-123",
-			loanAmountIDR:       20_000_000,
-			termMonths:      24,
-			loanType:        application.TypeKTA,
-			interestRateAPR: 30.1, // Max is 30.0
-			expectedErr:     application.ErrAPRTooHigh,
+			name:          "unsupported loan type",
+			borrowerUUID:  "borrower-123",
+			loanAmountIDR: 10_000_000,
+			termMonths:    12,
+			loanType:      "INVALID_TYPE",
+			expectedErr:   application.ErrUnsupportedType,
 		},
 	}
 
@@ -108,7 +77,6 @@ func TestNewApplication(t *testing.T) {
 				tt.loanAmountIDR,
 				tt.termMonths,
 				tt.loanType,
-				tt.interestRateAPR,
 			)
 
 			if tt.expectedErr != nil {
@@ -119,6 +87,8 @@ func TestNewApplication(t *testing.T) {
 				require.NotNil(t, app)
 				require.Equal(t, tt.loanAmountIDR, app.LoanAmountIDR())
 				require.Equal(t, application.ApplicationStatusPending, app.Status())
+
+				require.Equal(t, tt.expectedAPR, app.InterestRateAPR())
 			}
 		})
 	}

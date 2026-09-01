@@ -11,8 +11,6 @@ var (
 	ErrInvalidAmount   = commonerrors.NewIncorrectInputError("loan amount must be greater than zero", "invalid-amount")
 	ErrInvalidTerm     = commonerrors.NewIncorrectInputError("loan term must be at least 1 month", "invalid-term")
 	ErrUnsupportedType = commonerrors.NewIncorrectInputError("unsupported loan type", "unsupported-type")
-	ErrAPRTooLow       = commonerrors.NewIncorrectInputError("APR too low", "apr-too-low")
-	ErrAPRTooHigh      = commonerrors.NewIncorrectInputError("APR too high", "apr-too-high")
 )
 
 type LoanType string
@@ -48,7 +46,7 @@ type Application struct {
 	updatedAt       time.Time
 }
 
-func NewApplication(uuid, borrowerUUID string, amountIDR int64, termMonths int, loanType LoanType, interestRateAPR float64) (*Application, error) {
+func NewApplication(uuid, borrowerUUID string, amountIDR int64, termMonths int, loanType LoanType) (*Application, error) {
 	if borrowerUUID == "" {
 		return nil, ErrMissingBorrower
 	}
@@ -61,20 +59,34 @@ func NewApplication(uuid, borrowerUUID string, amountIDR int64, termMonths int, 
 		return nil, ErrInvalidTerm
 	}
 
-	if err := validateProductAPR(loanType, interestRateAPR); err != nil {
-		return nil, err
+	var assignedAPR float64
+	switch loanType {
+	case TypeKPR:
+		assignedAPR = 8.5
+	case TypeKKB:
+		assignedAPR = 6.5
+	case TypeKTA:
+		assignedAPR = 18.0
+	case TypeKMG:
+		assignedAPR = 11.0
+	case TypeKMK:
+		assignedAPR = 10.0
+	case TypeKUR:
+		assignedAPR = 6.0
+	default:
+		return nil, ErrUnsupportedType
 	}
 
 	return &Application{
-		uuid: uuid,
-		borrowerUUID: borrowerUUID,
-		loanAmountIDR: amountIDR,
-		termMonths: termMonths,
-		loanType: loanType,
-		interestRateAPR: interestRateAPR,
-		status: ApplicationStatusPending,
-		createdAt: time.Now(),
-		updatedAt: time.Now(),
+		uuid:            uuid,
+		borrowerUUID:    borrowerUUID,
+		loanAmountIDR:   amountIDR,
+		termMonths:      termMonths,
+		loanType:        loanType,
+		interestRateAPR: assignedAPR,
+		status:          ApplicationStatusPending,
+		createdAt:       time.Now(),
+		updatedAt:       time.Now(),
 	}, nil
 }
 
@@ -86,24 +98,6 @@ func (a Application) Status() ApplicationStatus {
 	return a.status
 }
 
-func validateProductAPR(loanType LoanType, apr float64) error {
-	switch loanType {
-	case TypeKPR:
-		if apr < 7.0 { return ErrAPRTooLow }
-		if apr > 13.0 { return ErrAPRTooHigh }
-	case TypeKKB, TypeKMG:
-		if apr < 8.0 { return ErrAPRTooLow }
-		if apr > 18.0 { return ErrAPRTooHigh }
-	case TypeKTA:
-		if apr < 15.0 { return ErrAPRTooLow }
-		if apr > 30.0 { return ErrAPRTooHigh }
-	case TypeKMK:
-		if apr < 9.0 { return ErrAPRTooLow }
-		if apr > 15.0 { return ErrAPRTooHigh }
-	case TypeKUR:
-		if apr != 6.0 { return ErrAPRTooHigh }
-	default:
-		return ErrUnsupportedType
-	}
-	return nil
+func (a Application) InterestRateAPR() float64 {
+	return a.interestRateAPR
 }
