@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Pinjamean Loans API
+  version: "1.0"
+
+paths:
+  /loans:
+    post:
+      summary: Submit a new loan application
+      operationId: submitLoan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitLoanRequest'
+      responses:
+        '204':
+          description: Loan submitted successfully
+        '400':
+          description: Invalid request (missing/invalid fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /loans/{uuid}:
+    get:
+      summary: Get loan by loan's UUID
+      operationId: getLoanByUuid
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanResponse'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LoanType:
+      type: string
+      enum:
+        - KPR
+        - KKB
+        - KTA
+        - KMG
+        - KMK
+        - KUR
+
+    SubmitLoanRequest:
+      type: object
+      required:
+        - borrowerUuid
+        - amountIdr
+        - termMonths
+        - loanType
+      properties:
+        borrowerUuid:
+          type: string
+          format: uuid
+        amountIdr:
+          type: integer
+          format: int64
+          minimum: 1
+        termMonths:
+          type: integer
+          minimum: 1
+        loanType:
+          $ref: '#/components/schemas/LoanType'
+
+    LoanResponse:
+      type: object
+      required:
+        - uuid
+        - borrowerUuid
+        - amountIdr
+        - termMonths
+        - loanType
+        - interestRateApr
+        - status
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        borrowerUuid:
+          type: string
+          format: uuid
+        amountIdr:
+          type: integer
+          format: int64
+        termMonths:
+          type: integer
+        loanType:
+          $ref: '#/components/schemas/LoanType'
+        interestRateApr:
+          type: number
+          format: float
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - slug
+        - message
+      properties:
+        slug:
+          type: string
+        message:
+          type: string
