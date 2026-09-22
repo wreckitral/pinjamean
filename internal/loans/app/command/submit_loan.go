@@ -31,12 +31,12 @@ func NewSubmitLoanHandler(repo loan.Repository) SubmitLoanHandler {
 }
 
 func (h submitLoanHandler) Handle(ctx context.Context, cmd SubmitLoan) (err error) {
-	loan, err := loan.NewLoan(cmd.LoanUUID, cmd.BorrowerUUID, cmd.LoanAmountIDR, cmd.TermMonths, cmd.LoanType)
+	l, err := loan.NewLoan(cmd.LoanUUID, cmd.BorrowerUUID, cmd.LoanAmountIDR, cmd.TermMonths, cmd.LoanType)
 	if err != nil {
 		return err
 	}
 
-	if err := h.repo.SaveLoan(ctx, loan); err != nil {
+	if err := h.repo.SaveLoan(ctx, l); err != nil {
 		return err
 	}
 

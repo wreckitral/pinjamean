@@ -30,13 +30,20 @@ func (h HttpServer) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := command.SubmitLoan{
-		LoanUUID: uuid.New().String(),
-		BorrowerUUID: req.BorrowerUuid.String(),
-		LoanAmountIDR: req.AmountIdr,
-		TermMonths: req.TermMonths,
-		LoanType: loan.LoanType(req.LoanType),
+	domainType, err := apiLoanTypeToDomain(req.LoanType)
+	if err != nil {
+		httperr.BadRequest("invalid-loan-type", err, w, r)
+		return
 	}
+
+	cmd := command.SubmitLoan{
+		LoanUUID:      uuid.New().String(),
+		BorrowerUUID:  req.BorrowerUuid.String(),
+		LoanAmountIDR: req.AmountIdr,
+		TermMonths:    req.TermMonths,
+		LoanType:      domainType,
+	}
+
 	if err := h.app.Commands.SubmitLoan.Handle(r.Context(), cmd); err != nil {
 		httperr.RespondWithSlugError(err, w, r)
 		return

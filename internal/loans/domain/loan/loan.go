@@ -91,6 +91,8 @@ func (l *Loan) TermMonths() int           { return l.termMonths }
 func (l *Loan) Type() LoanType            { return l.loanType }
 func (l *Loan) InterestRateAPR() float64  { return l.interestRateAPR }
 func (l *Loan) Status() LoanStatus        { return l.status }
+func (l *Loan) CreatedAt() time.Time      { return l.createdAt }
+func (l *Loan) UpdatedAt() time.Time      { return l.updatedAt }
 
 var ErrLoanStatusNotPending = commonerrors.NewIncorrectInputError("loan must be pending", "not-pending")
 
@@ -115,4 +117,34 @@ func (a *Loan) Reject() error {
 	a.updatedAt = time.Now()
 
 	return nil
+}
+
+func UnmarshalLoanFromDatabase(
+	uuid string,
+	borrowerUUID string,
+	amountIDR int64,
+	termMonths int,
+	loanType LoanType,
+	interestRateAPR float64,
+	status LoanStatus,
+	createdAt time.Time,
+	updatedAt time.Time,
+) (*Loan, error) {
+	l, err := NewLoan(
+		uuid,
+		borrowerUUID,
+		amountIDR,
+		termMonths,
+		loanType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	l.interestRateAPR = interestRateAPR
+	l.status = status
+	l.createdAt = createdAt
+	l.updatedAt = updatedAt
+
+	return l, nil
 }
