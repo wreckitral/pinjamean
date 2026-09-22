@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wreckitral/pinjamean/internal/loans/adapters"
 	"github.com/wreckitral/pinjamean/internal/loans/app"
 	"github.com/wreckitral/pinjamean/internal/loans/app/command"
@@ -15,9 +12,7 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-
-	db, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	db, err := adapters.NewPostgresSQLConnection()
 	if err != nil {
 		panic(err)
 	}

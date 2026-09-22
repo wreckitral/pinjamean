@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,4 +80,9 @@ func (r *PostgresLoanRepository) GetLoanByID(ctx context.Context, loanUUID strin
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
+}
+
+func NewPostgresSQLConnection() (*pgxpool.Pool, error) {
+	ctx := context.Background()
+	return pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
 }

@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/wreckitral/pinjamean/internal/common/decorator"
 	"github.com/wreckitral/pinjamean/internal/loans/domain/loan"
@@ -29,12 +30,15 @@ type getLoanByIDHandler struct {
 	repo loan.Repository
 }
 
-func NewGetLoanByIDHandler(repo loan.Repository) GetLoanByIDHandler {
+func NewGetLoanByIDHandler(repo loan.Repository, logger *slog.Logger) GetLoanByIDHandler {
 	if repo == nil {
 		panic("nil repo")
 	}
 
-	return getLoanByIDHandler{repo: repo}
+	return decorator.ApplyQueryDecorators[GetLoan, LoanView](
+		getLoanByIDHandler{repo: repo},
+		logger,
+	)
 }
 
 func (h getLoanByIDHandler) Handle(ctx context.Context, query GetLoan) (LoanView, error) {

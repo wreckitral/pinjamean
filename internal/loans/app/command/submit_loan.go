@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/wreckitral/pinjamean/internal/common/decorator"
 	"github.com/wreckitral/pinjamean/internal/loans/domain/loan"
@@ -22,12 +23,15 @@ type submitLoanHandler struct {
 
 type SubmitLoanHandler decorator.CommandHandler[SubmitLoan]
 
-func NewSubmitLoanHandler(repo loan.Repository) SubmitLoanHandler {
+func NewSubmitLoanHandler(repo loan.Repository, logger *slog.Logger) SubmitLoanHandler {
 	if repo == nil {
 		panic("nil repo")
 	}
 
-	return submitLoanHandler{repo: repo}
+	return decorator.ApplyCommandDecorators[SubmitLoan](
+		submitLoanHandler{repo: repo},
+		logger,
+	)
 }
 
 func (h submitLoanHandler) Handle(ctx context.Context, cmd SubmitLoan) (err error) {
