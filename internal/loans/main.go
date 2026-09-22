@@ -1,41 +1,34 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/wreckitral/pinjamean/internal/loans/adapters"
-	"github.com/wreckitral/pinjamean/internal/loans/app"
-	"github.com/wreckitral/pinjamean/internal/loans/app/command"
-	"github.com/wreckitral/pinjamean/internal/loans/app/query"
+	"github.com/wreckitral/pinjamean/internal/common/logs"
+	"github.com/wreckitral/pinjamean/internal/common/server"
 	"github.com/wreckitral/pinjamean/internal/loans/ports"
+	"github.com/wreckitral/pinjamean/internal/loans/service"
 )
 
 func main() {
-	db, err := adapters.NewPostgresSQLConnection()
-	if err != nil {
-		panic(err)
-	}
-	repo := adapters.NewPostgresLoanRepository(db)
+	logs.Init()
 
-	submitLoanHandler := command.NewSubmitLoanHandler(repo)
-	getLoanHandler := query.NewGetLoanByIDHandler(repo)
+	ctx := context.Background()
 
-	application := app.Application{
-		Commands: app.Commands{
-			SubmitLoan: submitLoanHandler,
-		},
-		Queries: app.Queries{
-			GetLoanByID: getLoanHandler,
-		},
-	}
+	application := service.NewApplication(ctx)
 
-	router := chi.NewRouter()
-	httpServer := ports.NewHttpServer(application)
+	serverType := strings.ToLower(os.Getenv("SERVER_TO_RUN"))
 
-	router.Mount("/", ports.HandlerFromMux(httpServer, router))
-
-	if err := http.ListenAndServe(":7777", router); err != nil {
-		panic(err)
+	switch serverType {
+	case "http":
+		server.RunHTTPServer(func(router chi.Router) http.Handler{
+			return ports.HandlerFromMux(
+				ports.NewHttpServer(application),
+				router,
+			)
+		})
 	}
 }
