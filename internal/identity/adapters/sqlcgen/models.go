@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Loan struct {
 	Uuid            uuid.UUID
 	BorrowerUuid    uuid.UUID
-	OfficerUuid     uuid.UUID
 	AmountIdr       int64
 	TermMonths      int32
 	LoanType        string
@@ -21,4 +21,13 @@ type Loan struct {
 	Status          string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+}
+
+type User struct {
+	Uuid           uuid.UUID
+	Email          string
+	Passwordhashed string
+	Role           string
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
 }

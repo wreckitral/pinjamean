@@ -12,6 +12,7 @@ type SubmitLoan struct {
 	LoanUUID string
 
 	BorrowerUUID string
+	OfficerUUID  string
 	LoanAmountIDR int64
 	TermMonths int
 	LoanType loan.LoanType
@@ -35,7 +36,7 @@ func NewSubmitLoanHandler(repo loan.Repository, logger *slog.Logger) SubmitLoanH
 }
 
 func (h submitLoanHandler) Handle(ctx context.Context, cmd SubmitLoan) (err error) {
-	l, err := loan.NewLoan(cmd.LoanUUID, cmd.BorrowerUUID, cmd.LoanAmountIDR, cmd.TermMonths, cmd.LoanType)
+	l, err := loan.NewLoan(cmd.LoanUUID, cmd.BorrowerUUID, cmd.OfficerUUID, cmd.LoanAmountIDR, cmd.TermMonths, cmd.LoanType)
 	if err != nil {
 		return err
 	}

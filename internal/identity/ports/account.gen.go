@@ -15,35 +15,33 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// Defines values for LoanType.
+// Defines values for AccountRole.
 const (
-	KKB LoanType = "KKB"
-	KMG LoanType = "KMG"
-	KMK LoanType = "KMK"
-	KPR LoanType = "KPR"
-	KTA LoanType = "KTA"
-	KUR LoanType = "KUR"
+	CreditAnalyst AccountRole = "credit_analyst"
+	Officer       AccountRole = "officer"
 )
 
-// Valid indicates whether the value is a known member of the LoanType enum.
-func (e LoanType) Valid() bool {
+// Valid indicates whether the value is a known member of the AccountRole enum.
+func (e AccountRole) Valid() bool {
 	switch e {
-	case KKB:
+	case CreditAnalyst:
 		return true
-	case KMG:
-		return true
-	case KMK:
-		return true
-	case KPR:
-		return true
-	case KTA:
-		return true
-	case KUR:
+	case Officer:
 		return true
 	default:
 		return false
 	}
 }
+
+// AccountResponse defines model for AccountResponse.
+type AccountResponse struct {
+	Email openapi_types.Email `json:"email"`
+	Role  AccountRole         `json:"role"`
+	Uuid  openapi_types.UUID  `json:"uuid"`
+}
+
+// AccountRole defines model for AccountRole.
+type AccountRole string
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
@@ -51,55 +49,40 @@ type ErrorResponse struct {
 	Slug    string `json:"slug"`
 }
 
-// LoanResponse defines model for LoanResponse.
-type LoanResponse struct {
-	AmountIdr       int64              `json:"amountIdr"`
-	BorrowerUuid    openapi_types.UUID `json:"borrowerUuid"`
-	OfficerUuid     openapi_types.UUID `json:"officerUuid"`
-	InterestRateApr float32            `json:"interestRateApr"`
-	LoanType        LoanType           `json:"loanType"`
-	Status          string             `json:"status"`
-	TermMonths      int                `json:"termMonths"`
-	Uuid            openapi_types.UUID `json:"uuid"`
+// SaveAccountRequest defines model for SaveAccountRequest.
+type SaveAccountRequest struct {
+	Email    openapi_types.Email `json:"email"`
+	Password *string             `json:"password,omitempty"`
+	Role     AccountRole         `json:"role"`
+	Uuid     openapi_types.UUID  `json:"uuid"`
 }
 
-// LoanType defines model for LoanType.
-type LoanType string
-
-// SubmitLoanRequest defines model for SubmitLoanRequest.
-type SubmitLoanRequest struct {
-	AmountIdr    int64              `json:"amountIdr"`
-	BorrowerUuid openapi_types.UUID `json:"borrowerUuid"`
-	LoanType     LoanType           `json:"loanType"`
-	TermMonths   int                `json:"termMonths"`
-}
-
-// SubmitLoanJSONRequestBody defines body for SubmitLoan for application/json ContentType.
-type SubmitLoanJSONRequestBody = SubmitLoanRequest
+// SaveAccountJSONRequestBody defines body for SaveAccount for application/json ContentType.
+type SaveAccountJSONRequestBody = SaveAccountRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// SubmitLoan Submit a new loan application
-	// (POST /loans)
-	SubmitLoan(w http.ResponseWriter, r *http.Request)
-	// GetLoanByUuid Get loan by loan's UUID
-	// (GET /loans/{uuid})
-	GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// SaveAccount Save an account
+	// (POST /accounts)
+	SaveAccount(w http.ResponseWriter, r *http.Request)
+	// GetAccountByEmail Get account by email
+	// (GET /accounts/{email})
+	GetAccountByEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
-// SubmitLoan Submit a new loan application
-// (POST /loans)
-func (_ Unimplemented) SubmitLoan(w http.ResponseWriter, r *http.Request) {
+// SaveAccount Save an account
+// (POST /accounts)
+func (_ Unimplemented) SaveAccount(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetLoanByUuid Get loan by loan's UUID
-// (GET /loans/{uuid})
-func (_ Unimplemented) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+// GetAccountByEmail Get account by email
+// (GET /accounts/{email})
+func (_ Unimplemented) GetAccountByEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -112,11 +95,11 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// SubmitLoan operation middleware
-func (siw *ServerInterfaceWrapper) SubmitLoan(w http.ResponseWriter, r *http.Request) {
+// SaveAccount operation middleware
+func (siw *ServerInterfaceWrapper) SaveAccount(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubmitLoan(w, r)
+		siw.Handler.SaveAccount(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -126,23 +109,23 @@ func (siw *ServerInterfaceWrapper) SubmitLoan(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
-// GetLoanByUuid operation middleware
-func (siw *ServerInterfaceWrapper) GetLoanByUuid(w http.ResponseWriter, r *http.Request) {
+// GetAccountByEmail operation middleware
+func (siw *ServerInterfaceWrapper) GetAccountByEmail(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	_ = err
 
-	// ------------- Path parameter "uuid" -------------
-	var uuid openapi_types.UUID
+	// ------------- Path parameter "email" -------------
+	var email openapi_types.Email
 
-	err = runtime.BindStyledParameterWithOptions("simple", "uuid", chi.URLParam(r, "uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "email", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetLoanByUuid(w, r, uuid)
+		siw.Handler.GetAccountByEmail(w, r, email)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -266,34 +249,34 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/loans", wrapper.SubmitLoan)
+		r.Post(options.BaseURL+"/accounts", wrapper.SaveAccount)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/loans/{uuid}", wrapper.GetLoanByUuid)
+		r.Get(options.BaseURL+"/accounts/{email}", wrapper.GetAccountByEmail)
 	})
 
 	return r
 }
 
-type SubmitLoanRequestObject struct {
-	Body *SubmitLoanJSONRequestBody
+type SaveAccountRequestObject struct {
+	Body *SaveAccountJSONRequestBody
 }
 
-type SubmitLoanResponseObject interface {
-	VisitSubmitLoanResponse(w http.ResponseWriter) error
+type SaveAccountResponseObject interface {
+	VisitSaveAccountResponse(w http.ResponseWriter) error
 }
 
-type SubmitLoan204Response struct {
+type SaveAccount204Response struct {
 }
 
-func (response SubmitLoan204Response) VisitSubmitLoanResponse(w http.ResponseWriter) error {
+func (response SaveAccount204Response) VisitSaveAccountResponse(w http.ResponseWriter) error {
 	w.WriteHeader(204)
 	return nil
 }
 
-type SubmitLoan400JSONResponse ErrorResponse
+type SaveAccount400JSONResponse ErrorResponse
 
-func (response SubmitLoan400JSONResponse) VisitSubmitLoanResponse(w http.ResponseWriter) error {
+func (response SaveAccount400JSONResponse) VisitSaveAccountResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -305,17 +288,17 @@ func (response SubmitLoan400JSONResponse) VisitSubmitLoanResponse(w http.Respons
 	return err
 }
 
-type GetLoanByUuidRequestObject struct {
-	Uuid openapi_types.UUID `json:"uuid"`
+type GetAccountByEmailRequestObject struct {
+	Email openapi_types.Email `json:"email"`
 }
 
-type GetLoanByUuidResponseObject interface {
-	VisitGetLoanByUuidResponse(w http.ResponseWriter) error
+type GetAccountByEmailResponseObject interface {
+	VisitGetAccountByEmailResponse(w http.ResponseWriter) error
 }
 
-type GetLoanByUuid200JSONResponse LoanResponse
+type GetAccountByEmail200JSONResponse AccountResponse
 
-func (response GetLoanByUuid200JSONResponse) VisitGetLoanByUuidResponse(w http.ResponseWriter) error {
+func (response GetAccountByEmail200JSONResponse) VisitGetAccountByEmailResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -327,9 +310,9 @@ func (response GetLoanByUuid200JSONResponse) VisitGetLoanByUuidResponse(w http.R
 	return err
 }
 
-type GetLoanByUuid404JSONResponse ErrorResponse
+type GetAccountByEmail404JSONResponse ErrorResponse
 
-func (response GetLoanByUuid404JSONResponse) VisitGetLoanByUuidResponse(w http.ResponseWriter) error {
+func (response GetAccountByEmail404JSONResponse) VisitGetAccountByEmailResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -343,12 +326,12 @@ func (response GetLoanByUuid404JSONResponse) VisitGetLoanByUuidResponse(w http.R
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// SubmitLoan Submit a new loan application
-	// (POST /loans)
-	SubmitLoan(ctx context.Context, request SubmitLoanRequestObject) (SubmitLoanResponseObject, error)
-	// GetLoanByUuid Get loan by loan's UUID
-	// (GET /loans/{uuid})
-	GetLoanByUuid(ctx context.Context, request GetLoanByUuidRequestObject) (GetLoanByUuidResponseObject, error)
+	// SaveAccount Save an account
+	// (POST /accounts)
+	SaveAccount(ctx context.Context, request SaveAccountRequestObject) (SaveAccountResponseObject, error)
+	// GetAccountByEmail Get account by email
+	// (GET /accounts/{email})
+	GetAccountByEmail(ctx context.Context, request GetAccountByEmailRequestObject) (GetAccountByEmailResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -390,11 +373,11 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// SubmitLoan operation middleware
-func (sh *strictHandler) SubmitLoan(w http.ResponseWriter, r *http.Request) {
-	var request SubmitLoanRequestObject
+// SaveAccount operation middleware
+func (sh *strictHandler) SaveAccount(w http.ResponseWriter, r *http.Request) {
+	var request SaveAccountRequestObject
 
-	var body SubmitLoanJSONRequestBody
+	var body SaveAccountJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -402,18 +385,18 @@ func (sh *strictHandler) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SubmitLoan(ctx, request.(SubmitLoanRequestObject))
+		return sh.ssi.SaveAccount(ctx, request.(SaveAccountRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SubmitLoan")
+		handler = middleware(handler, "SaveAccount")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SubmitLoanResponseObject); ok {
-		if err := validResponse.VisitSubmitLoanResponse(w); err != nil {
+	} else if validResponse, ok := response.(SaveAccountResponseObject); ok {
+		if err := validResponse.VisitSaveAccountResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -421,25 +404,25 @@ func (sh *strictHandler) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetLoanByUuid operation middleware
-func (sh *strictHandler) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
-	var request GetLoanByUuidRequestObject
+// GetAccountByEmail operation middleware
+func (sh *strictHandler) GetAccountByEmail(w http.ResponseWriter, r *http.Request, email openapi_types.Email) {
+	var request GetAccountByEmailRequestObject
 
-	request.Uuid = uuid
+	request.Email = email
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetLoanByUuid(ctx, request.(GetLoanByUuidRequestObject))
+		return sh.ssi.GetAccountByEmail(ctx, request.(GetAccountByEmailRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetLoanByUuid")
+		handler = middleware(handler, "GetAccountByEmail")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetLoanByUuidResponseObject); ok {
-		if err := validResponse.VisitGetLoanByUuidResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetAccountByEmailResponseObject); ok {
+		if err := validResponse.VisitGetAccountByEmailResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

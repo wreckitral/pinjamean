@@ -133,7 +133,7 @@ func TestNewLoan(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewLoan(tc.uuid, tc.borrowerUUID, tc.amountIDR, tc.termMonths, tc.loanType)
+			got, err := NewLoan(tc.uuid, tc.borrowerUUID, "officer-1", tc.amountIDR, tc.termMonths, tc.loanType)
 
 			if tc.wantErr {
 				require.Error(t, err)

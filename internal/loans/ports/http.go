@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/google/uuid"
+	"github.com/wreckitral/pinjamean/internal/common/auth"
 	"github.com/wreckitral/pinjamean/internal/common/server/httperr"
 	"github.com/wreckitral/pinjamean/internal/loans/app"
 	"github.com/wreckitral/pinjamean/internal/loans/app/command"
@@ -43,6 +44,12 @@ func (h HttpServer) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 		TermMonths:    req.TermMonths,
 		LoanType:      domainType,
 	}
+	claims, err := auth.ClaimsFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	cmd.OfficerUUID = claims.AccountUUID
 
 	if err := h.app.Commands.SubmitLoan.Handle(r.Context(), cmd); err != nil {
 		httperr.RespondWithSlugError(err, w, r)
@@ -75,6 +82,10 @@ func appLoanToResponse(appLoan query.LoanView) (LoanResponse, error) {
 	if err != nil {
 		return LoanResponse{}, fmt.Errorf("invalid borrower UUID %q: %w", appLoan.BorrowerUUID, err)
 	}
+	officerUuid, err := uuid.Parse(appLoan.OfficerUUID)
+	if err != nil {
+		return LoanResponse{}, fmt.Errorf("invalid officer UUID %q: %w", appLoan.OfficerUUID, err)
+	}
 
 	apiType, err := domainLoanTypeToAPI(appLoan.LoanType)
 	if err != nil {
@@ -84,6 +95,7 @@ func appLoanToResponse(appLoan query.LoanView) (LoanResponse, error) {
 	return LoanResponse{
 		Uuid:            loanUuid,
 		BorrowerUuid:    borrowerUuid,
+		OfficerUuid:     officerUuid,
 		AmountIdr:       appLoan.LoanAmountIDR,
 		TermMonths:      appLoan.TermMonths,
 		LoanType:        apiType,
@@ -133,4 +145,3 @@ func domainLoanTypeToAPI(t loan.LoanType) (LoanType, error) {
 		return "", fmt.Errorf("no API mapping for domain loan type %q", t)
 	}
 }
-

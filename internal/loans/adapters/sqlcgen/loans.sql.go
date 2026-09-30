@@ -13,7 +13,7 @@ import (
 )
 
 const getLoanByID = `-- name: GetLoanByID :one
-SELECT uuid, borrower_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at FROM loans WHERE uuid = $1
+SELECT uuid, borrower_uuid, officer_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at FROM loans WHERE uuid = $1
 `
 
 func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, error) {
@@ -22,6 +22,7 @@ func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, err
 	err := row.Scan(
 		&i.Uuid,
 		&i.BorrowerUuid,
+		&i.OfficerUuid,
 		&i.AmountIdr,
 		&i.TermMonths,
 		&i.LoanType,
@@ -34,13 +35,14 @@ func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, err
 }
 
 const saveLoan = `-- name: SaveLoan :exec
-INSERT INTO loans (uuid, borrower_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO loans (uuid, borrower_uuid, officer_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type SaveLoanParams struct {
 	Uuid            uuid.UUID
 	BorrowerUuid    uuid.UUID
+	OfficerUuid     uuid.UUID
 	AmountIdr       int64
 	TermMonths      int32
 	LoanType        string
@@ -54,6 +56,7 @@ func (q *Queries) SaveLoan(ctx context.Context, arg SaveLoanParams) error {
 	_, err := q.db.Exec(ctx, saveLoan,
 		arg.Uuid,
 		arg.BorrowerUuid,
+		arg.OfficerUuid,
 		arg.AmountIdr,
 		arg.TermMonths,
 		arg.LoanType,

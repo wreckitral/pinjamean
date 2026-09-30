@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Pinjamean Identity Login API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid credentials
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string

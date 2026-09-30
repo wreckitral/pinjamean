@@ -14,7 +14,8 @@ import (
 
 type postgresLoan struct {
     UUID            string    `db:"uuid"`
-    BorrowerUUID    string    `db:"borrower_uuid"`
+	BorrowerUUID    string    `db:"borrower_uuid"`
+	OfficerUUID     string    `db:"officer_uuid"`
     AmountIDR       int64     `db:"amount_idr"`
     TermMonths      int       `db:"term_months"`
     LoanType        string    `db:"loan_type"`
@@ -44,10 +45,13 @@ func (r *PostgresLoanRepository) SaveLoan(ctx context.Context, l *loan.Loan) err
 	if err != nil {
 		return fmt.Errorf("invalid borrower UUID %q: %w", l.BorrowerUUID(), err)
 	}
+	officerUuid, err := uuid.Parse(l.OfficerUUID())
+	if err != nil { return fmt.Errorf("invalid officer UUID %q: %w", l.OfficerUUID(), err) }
 
 	return r.q.SaveLoan(ctx, sqlcgen.SaveLoanParams{
 		Uuid:            loanUuid,
 		BorrowerUuid:    borrowerUuid,
+		OfficerUuid:     officerUuid,
 		AmountIdr:       l.AmountIDR(),
 		TermMonths:      int32(l.TermMonths()),
 		LoanType:        string(l.Type()),
@@ -72,6 +76,7 @@ func (r *PostgresLoanRepository) GetLoanByID(ctx context.Context, loanUUID strin
 	return loan.UnmarshalLoanFromDatabase(
 		row.Uuid.String(),
 		row.BorrowerUuid.String(),
+		row.OfficerUuid.String(),
 		row.AmountIdr,
 		int(row.TermMonths),
 		loan.LoanType(row.LoanType),

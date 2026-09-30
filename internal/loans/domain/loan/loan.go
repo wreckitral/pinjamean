@@ -30,6 +30,7 @@ type Loan struct {
 	uuid string
 
 	borrowerUUID string
+	officerUUID string
 
 	loanAmountIDR   int64
 	termMonths      int
@@ -40,9 +41,13 @@ type Loan struct {
 	updatedAt       time.Time
 }
 
-func NewLoan(uuid, borrowerUUID string, amountIDR int64, termMonths int, loanType LoanType) (*Loan, error) {
+func NewLoan(uuid, borrowerUUID, officerUUID string, amountIDR int64, termMonths int, loanType LoanType) (*Loan, error) {
 	if borrowerUUID == "" {
 		return nil, errors.New("borrowerUUID is required")
+	}
+
+	if officerUUID == "" {
+		return nil, errors.New("officerUUID is required")
 	}
 
 	if amountIDR <= 0 {
@@ -74,6 +79,7 @@ func NewLoan(uuid, borrowerUUID string, amountIDR int64, termMonths int, loanTyp
 	return &Loan{
 		uuid:            uuid,
 		borrowerUUID:    borrowerUUID,
+		officerUUID:     officerUUID,
 		loanAmountIDR:   amountIDR,
 		termMonths:      termMonths,
 		loanType:        loanType,
@@ -86,6 +92,7 @@ func NewLoan(uuid, borrowerUUID string, amountIDR int64, termMonths int, loanTyp
 
 func (l *Loan) UUID() string              { return l.uuid }
 func (l *Loan) BorrowerUUID() string      { return l.borrowerUUID }
+func (l *Loan) OfficerUUID() string       { return l.officerUUID }
 func (l *Loan) AmountIDR() int64          { return l.loanAmountIDR }
 func (l *Loan) TermMonths() int           { return l.termMonths }
 func (l *Loan) Type() LoanType            { return l.loanType }
@@ -122,6 +129,7 @@ func (a *Loan) Reject() error {
 func UnmarshalLoanFromDatabase(
 	uuid string,
 	borrowerUUID string,
+	officerUUID string,
 	amountIDR int64,
 	termMonths int,
 	loanType LoanType,
@@ -133,6 +141,7 @@ func UnmarshalLoanFromDatabase(
 	l, err := NewLoan(
 		uuid,
 		borrowerUUID,
+		officerUUID,
 		amountIDR,
 		termMonths,
 		loanType,
