@@ -41,14 +41,22 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 				return
 			}
 
-			for _, role := range roles {
-				if claims.Role == role {
-					next.ServeHTTP(w, r)
-					return
-				}
+			if !HasRole(claims, roles...) {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
 			}
 
-			http.Error(w, "forbidden", http.StatusForbidden)
+			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func HasRole(claims *Claims, roles ...string) bool {
+	for _, role := range roles {
+		if claims.Role == role {
+			return true
+		}
+	}
+
+	return false
 }

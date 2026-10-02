@@ -54,10 +54,11 @@ type ErrorResponse struct {
 // LoanResponse defines model for LoanResponse.
 type LoanResponse struct {
 	AmountIdr       int64              `json:"amountIdr"`
+	AssignedToUuid  openapi_types.UUID `json:"assignedToUuid"`
 	BorrowerUuid    openapi_types.UUID `json:"borrowerUuid"`
-	OfficerUuid     openapi_types.UUID `json:"officerUuid"`
 	InterestRateApr float32            `json:"interestRateApr"`
 	LoanType        LoanType           `json:"loanType"`
+	OfficerUuid     openapi_types.UUID `json:"officerUuid"`
 	Status          string             `json:"status"`
 	TermMonths      int                `json:"termMonths"`
 	Uuid            openapi_types.UUID `json:"uuid"`
@@ -65,6 +66,11 @@ type LoanResponse struct {
 
 // LoanType defines model for LoanType.
 type LoanType string
+
+// ReassignLoanRequest defines model for ReassignLoanRequest.
+type ReassignLoanRequest struct {
+	AssignedToUuid openapi_types.UUID `json:"assignedToUuid"`
+}
 
 // SubmitLoanRequest defines model for SubmitLoanRequest.
 type SubmitLoanRequest struct {
@@ -77,6 +83,9 @@ type SubmitLoanRequest struct {
 // SubmitLoanJSONRequestBody defines body for SubmitLoan for application/json ContentType.
 type SubmitLoanJSONRequestBody = SubmitLoanRequest
 
+// ReassignLoanJSONRequestBody defines body for ReassignLoan for application/json ContentType.
+type ReassignLoanJSONRequestBody = ReassignLoanRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// SubmitLoan Submit a new loan application
@@ -85,6 +94,9 @@ type ServerInterface interface {
 	// GetLoanByUuid Get loan by loan's UUID
 	// (GET /loans/{uuid})
 	GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
+	// ReassignLoan Reassign a loan
+	// (PATCH /loans/{uuid}/assignment)
+	ReassignLoan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -100,6 +112,12 @@ func (_ Unimplemented) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 // GetLoanByUuid Get loan by loan's UUID
 // (GET /loans/{uuid})
 func (_ Unimplemented) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReassignLoan Reassign a loan
+// (PATCH /loans/{uuid}/assignment)
+func (_ Unimplemented) ReassignLoan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -143,6 +161,32 @@ func (siw *ServerInterfaceWrapper) GetLoanByUuid(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetLoanByUuid(w, r, uuid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReassignLoan operation middleware
+func (siw *ServerInterfaceWrapper) ReassignLoan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "uuid" -------------
+	var uuid openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "uuid", chi.URLParam(r, "uuid"), &uuid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "uuid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReassignLoan(w, r, uuid)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -271,6 +315,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/loans/{uuid}", wrapper.GetLoanByUuid)
 	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/loans/{uuid}/assignment", wrapper.ReassignLoan)
+	})
 
 	return r
 }
@@ -341,6 +388,51 @@ func (response GetLoanByUuid404JSONResponse) VisitGetLoanByUuidResponse(w http.R
 	return err
 }
 
+type ReassignLoanRequestObject struct {
+	Uuid openapi_types.UUID `json:"uuid"`
+	Body *ReassignLoanJSONRequestBody
+}
+
+type ReassignLoanResponseObject interface {
+	VisitReassignLoanResponse(w http.ResponseWriter) error
+}
+
+type ReassignLoan204Response struct {
+}
+
+func (response ReassignLoan204Response) VisitReassignLoanResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ReassignLoan400JSONResponse ErrorResponse
+
+func (response ReassignLoan400JSONResponse) VisitReassignLoanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReassignLoan404JSONResponse ErrorResponse
+
+func (response ReassignLoan404JSONResponse) VisitReassignLoanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// SubmitLoan Submit a new loan application
@@ -349,6 +441,9 @@ type StrictServerInterface interface {
 	// GetLoanByUuid Get loan by loan's UUID
 	// (GET /loans/{uuid})
 	GetLoanByUuid(ctx context.Context, request GetLoanByUuidRequestObject) (GetLoanByUuidResponseObject, error)
+	// ReassignLoan Reassign a loan
+	// (PATCH /loans/{uuid}/assignment)
+	ReassignLoan(ctx context.Context, request ReassignLoanRequestObject) (ReassignLoanResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -440,6 +535,39 @@ func (sh *strictHandler) GetLoanByUuid(w http.ResponseWriter, r *http.Request, u
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetLoanByUuidResponseObject); ok {
 		if err := validResponse.VisitGetLoanByUuidResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReassignLoan operation middleware
+func (sh *strictHandler) ReassignLoan(w http.ResponseWriter, r *http.Request, uuid openapi_types.UUID) {
+	var request ReassignLoanRequestObject
+
+	request.Uuid = uuid
+
+	var body ReassignLoanJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReassignLoan(ctx, request.(ReassignLoanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReassignLoan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReassignLoanResponseObject); ok {
+		if err := validResponse.VisitReassignLoanResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -15,8 +15,9 @@ type GetLoan struct {
 type LoanView struct {
 	UUID string
 
-	BorrowerUUID string
-	OfficerUUID  string
+	BorrowerUUID   string
+	OfficerUUID    string
+	AssignedToUUID string
 
 	LoanAmountIDR   int64
 	TermMonths      int
@@ -52,6 +53,7 @@ func (h getLoanByIDHandler) Handle(ctx context.Context, query GetLoan) (LoanView
 		UUID:            l.UUID(),
 		BorrowerUUID:    l.BorrowerUUID(),
 		OfficerUUID:     l.OfficerUUID(),
+		AssignedToUUID:  l.AssignedToUUID(),
 		LoanAmountIDR:   l.AmountIDR(),
 		TermMonths:      l.TermMonths(),
 		LoanType:        l.Type(),

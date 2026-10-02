@@ -13,16 +13,17 @@ import (
 )
 
 type postgresLoan struct {
-    UUID            string    `db:"uuid"`
+	UUID            string    `db:"uuid"`
 	BorrowerUUID    string    `db:"borrower_uuid"`
 	OfficerUUID     string    `db:"officer_uuid"`
-    AmountIDR       int64     `db:"amount_idr"`
-    TermMonths      int       `db:"term_months"`
-    LoanType        string    `db:"loan_type"`
-    InterestRateAPR float64   `db:"interest_rate_apr"`
-    Status          string    `db:"status"`
-    CreatedAt       time.Time `db:"created_at"`
-    UpdatedAt       time.Time `db:"updated_at"`
+	AssignedToUUID  string    `db:"assigned_to_uuid"`
+	AmountIDR       int64     `db:"amount_idr"`
+	TermMonths      int       `db:"term_months"`
+	LoanType        string    `db:"loan_type"`
+	InterestRateAPR float64   `db:"interest_rate_apr"`
+	Status          string    `db:"status"`
+	CreatedAt       time.Time `db:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at"`
 }
 
 type PostgresLoanRepository struct {
@@ -46,12 +47,19 @@ func (r *PostgresLoanRepository) SaveLoan(ctx context.Context, l *loan.Loan) err
 		return fmt.Errorf("invalid borrower UUID %q: %w", l.BorrowerUUID(), err)
 	}
 	officerUuid, err := uuid.Parse(l.OfficerUUID())
-	if err != nil { return fmt.Errorf("invalid officer UUID %q: %w", l.OfficerUUID(), err) }
+	if err != nil {
+		return fmt.Errorf("invalid officer UUID %q: %w", l.OfficerUUID(), err)
+	}
+	assignedToUuid, err := uuid.Parse(l.AssignedToUUID())
+	if err != nil {
+		return fmt.Errorf("invalid assigned-to UUID %q: %w", l.AssignedToUUID(), err)
+	}
 
 	return r.q.SaveLoan(ctx, sqlcgen.SaveLoanParams{
 		Uuid:            loanUuid,
 		BorrowerUuid:    borrowerUuid,
 		OfficerUuid:     officerUuid,
+		AssignedToUuid:  assignedToUuid,
 		AmountIdr:       l.AmountIDR(),
 		TermMonths:      int32(l.TermMonths()),
 		LoanType:        string(l.Type()),
@@ -77,6 +85,7 @@ func (r *PostgresLoanRepository) GetLoanByID(ctx context.Context, loanUUID strin
 		row.Uuid.String(),
 		row.BorrowerUuid.String(),
 		row.OfficerUuid.String(),
+		row.AssignedToUuid.String(),
 		row.AmountIdr,
 		int(row.TermMonths),
 		loan.LoanType(row.LoanType),

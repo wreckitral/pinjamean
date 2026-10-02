@@ -17,6 +17,10 @@ func Unauthorised(slug string, err error, w http.ResponseWriter, r *http.Request
 	httpRespondWithError(err, slug, w, r, userMessage(err, "Unauthorised"), http.StatusUnauthorized)
 }
 
+func Forbidden(slug string, err error, w http.ResponseWriter, r *http.Request) {
+	httpRespondWithError(err, slug, w, r, userMessage(err, "Forbidden"), http.StatusForbidden)
+}
+
 func BadRequest(slug string, err error, w http.ResponseWriter, r *http.Request) {
 	httpRespondWithError(err, slug, w, r, userMessage(err, "Bad request"), http.StatusBadRequest)
 }

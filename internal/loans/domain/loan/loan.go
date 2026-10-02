@@ -1,8 +1,8 @@
 package loan
 
 import (
-	"time"
 	"errors"
+	"time"
 
 	commonerrors "github.com/wreckitral/pinjamean/internal/common/errors"
 )
@@ -29,8 +29,9 @@ const (
 type Loan struct {
 	uuid string
 
-	borrowerUUID string
-	officerUUID string
+	borrowerUUID   string
+	officerUUID    string
+	assignedToUUID string
 
 	loanAmountIDR   int64
 	termMonths      int
@@ -41,13 +42,17 @@ type Loan struct {
 	updatedAt       time.Time
 }
 
-func NewLoan(uuid, borrowerUUID, officerUUID string, amountIDR int64, termMonths int, loanType LoanType) (*Loan, error) {
+func NewLoan(uuid, borrowerUUID, officerUUID, assignedToUUID string, amountIDR int64, termMonths int, loanType LoanType) (*Loan, error) {
 	if borrowerUUID == "" {
 		return nil, errors.New("borrowerUUID is required")
 	}
 
 	if officerUUID == "" {
 		return nil, errors.New("officerUUID is required")
+	}
+
+	if assignedToUUID == "" {
+		return nil, errors.New("assignedToUUID is required")
 	}
 
 	if amountIDR <= 0 {
@@ -80,6 +85,7 @@ func NewLoan(uuid, borrowerUUID, officerUUID string, amountIDR int64, termMonths
 		uuid:            uuid,
 		borrowerUUID:    borrowerUUID,
 		officerUUID:     officerUUID,
+		assignedToUUID:  assignedToUUID,
 		loanAmountIDR:   amountIDR,
 		termMonths:      termMonths,
 		loanType:        loanType,
@@ -90,38 +96,50 @@ func NewLoan(uuid, borrowerUUID, officerUUID string, amountIDR int64, termMonths
 	}, nil
 }
 
-func (l *Loan) UUID() string              { return l.uuid }
-func (l *Loan) BorrowerUUID() string      { return l.borrowerUUID }
-func (l *Loan) OfficerUUID() string       { return l.officerUUID }
-func (l *Loan) AmountIDR() int64          { return l.loanAmountIDR }
-func (l *Loan) TermMonths() int           { return l.termMonths }
-func (l *Loan) Type() LoanType            { return l.loanType }
-func (l *Loan) InterestRateAPR() float64  { return l.interestRateAPR }
-func (l *Loan) Status() LoanStatus        { return l.status }
-func (l *Loan) CreatedAt() time.Time      { return l.createdAt }
-func (l *Loan) UpdatedAt() time.Time      { return l.updatedAt }
+func (l *Loan) UUID() string             { return l.uuid }
+func (l *Loan) BorrowerUUID() string     { return l.borrowerUUID }
+func (l *Loan) OfficerUUID() string      { return l.officerUUID }
+func (l *Loan) AssignedToUUID() string   { return l.assignedToUUID }
+func (l *Loan) AmountIDR() int64         { return l.loanAmountIDR }
+func (l *Loan) TermMonths() int          { return l.termMonths }
+func (l *Loan) Type() LoanType           { return l.loanType }
+func (l *Loan) InterestRateAPR() float64 { return l.interestRateAPR }
+func (l *Loan) Status() LoanStatus       { return l.status }
+func (l *Loan) CreatedAt() time.Time     { return l.createdAt }
+func (l *Loan) UpdatedAt() time.Time     { return l.updatedAt }
 
 var ErrLoanStatusNotPending = commonerrors.NewIncorrectInputError("loan must be pending", "not-pending")
 
 // state-transition
-func (a *Loan) Approve() error {
-	if a.status != LoanStatusPending {
+func (l *Loan) Approve() error {
+	if l.status != LoanStatusPending {
 		return ErrLoanStatusNotPending
 	}
 
-	a.status = LoanStatusApproved
-	a.updatedAt = time.Now()
+	l.status = LoanStatusApproved
+	l.updatedAt = time.Now()
 
 	return nil
 }
 
-func (a *Loan) Reject() error {
-	if a.status != LoanStatusPending {
+func (l *Loan) Reject() error {
+	if l.status != LoanStatusPending {
 		return ErrLoanStatusNotPending
 	}
 
-	a.status = LoanStatusRejected
-	a.updatedAt = time.Now()
+	l.status = LoanStatusRejected
+	l.updatedAt = time.Now()
+
+	return nil
+}
+
+func (l *Loan) Reassign(ReassignToUUID string) error {
+	if ReassignToUUID == "" {
+		return errors.New("reassignToUUID is required")
+	}
+
+	l.assignedToUUID = ReassignToUUID
+	l.updatedAt = time.Now()
 
 	return nil
 }
@@ -130,6 +148,7 @@ func UnmarshalLoanFromDatabase(
 	uuid string,
 	borrowerUUID string,
 	officerUUID string,
+	assignedToUUID string,
 	amountIDR int64,
 	termMonths int,
 	loanType LoanType,
@@ -142,6 +161,7 @@ func UnmarshalLoanFromDatabase(
 		uuid,
 		borrowerUUID,
 		officerUUID,
+		assignedToUUID,
 		amountIDR,
 		termMonths,
 		loanType,

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/wreckitral/pinjamean/internal/common/auth"
 	"github.com/wreckitral/pinjamean/internal/common/server/httperr"
+	"github.com/wreckitral/pinjamean/internal/identity/domain/account"
 	"github.com/wreckitral/pinjamean/internal/loans/app"
 	"github.com/wreckitral/pinjamean/internal/loans/app/command"
 	"github.com/wreckitral/pinjamean/internal/loans/app/query"
@@ -72,6 +73,34 @@ func (h HttpServer) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid o
 	render.Respond(w, r, view)
 }
 
+func (h HttpServer) ReassignLoan(w http.ResponseWriter, r *http.Request, loanUUID openapi_types.UUID) {
+	claims, err := auth.ClaimsFromContext(r.Context())
+	if err != nil {
+		httperr.Unauthorised("unauthenticated", err, w, r)
+		return
+	}
+	if claims.Role != string(account.RoleSupervisor) {
+		httperr.Forbidden("not-a-supervisor", nil, w, r)
+		return
+	}
+
+	req := ReassignLoanRequest{}
+	if err := render.Decode(r, &req); err != nil {
+		httperr.BadRequest("invalid-request", err, w, r)
+		return
+	}
+
+	if err := h.app.Commands.ReassignLoan.Handle(r.Context(), command.ReassignLoan{
+		LoanUUID:       loanUUID.String(),
+		ReassignToUUID: req.AssignedToUuid.String(),
+	}); err != nil {
+		httperr.RespondWithSlugError(err, w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func appLoanToResponse(appLoan query.LoanView) (LoanResponse, error) {
 	loanUuid, err := uuid.Parse(appLoan.UUID)
 	if err != nil {
@@ -86,6 +115,10 @@ func appLoanToResponse(appLoan query.LoanView) (LoanResponse, error) {
 	if err != nil {
 		return LoanResponse{}, fmt.Errorf("invalid officer UUID %q: %w", appLoan.OfficerUUID, err)
 	}
+	assignedToUuid, err := uuid.Parse(appLoan.AssignedToUUID)
+	if err != nil {
+		return LoanResponse{}, fmt.Errorf("invalid assigned-to UUID %q: %w", appLoan.AssignedToUUID, err)
+	}
 
 	apiType, err := domainLoanTypeToAPI(appLoan.LoanType)
 	if err != nil {
@@ -96,6 +129,7 @@ func appLoanToResponse(appLoan query.LoanView) (LoanResponse, error) {
 		Uuid:            loanUuid,
 		BorrowerUuid:    borrowerUuid,
 		OfficerUuid:     officerUuid,
+		AssignedToUuid:  assignedToUuid,
 		AmountIdr:       appLoan.LoanAmountIDR,
 		TermMonths:      appLoan.TermMonths,
 		LoanType:        apiType,

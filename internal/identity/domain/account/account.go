@@ -10,6 +10,7 @@ type Role string
 const (
 	RoleOfficer Role = "officer"
 	RoleCreditAnalyst Role = "credit_analyst"
+	RoleSupervisor Role = "supervisor"
 )
 
 type Account struct {
@@ -30,7 +31,7 @@ func NewAccount(uuid, email, passwordHash string, role Role) (*Account, error) {
 	}
 
 	switch role {
-	case RoleOfficer, RoleCreditAnalyst:
+	case RoleOfficer, RoleCreditAnalyst, RoleSupervisor:
 		// valid
 	default:
 		return nil, errors.New("unsupported role")

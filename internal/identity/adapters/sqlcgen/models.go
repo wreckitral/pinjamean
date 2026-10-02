@@ -21,6 +21,8 @@ type Loan struct {
 	Status          string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	OfficerUuid     uuid.UUID
+	AssignedToUuid  uuid.UUID
 }
 
 type User struct {

@@ -13,7 +13,7 @@ import (
 )
 
 const getLoanByID = `-- name: GetLoanByID :one
-SELECT uuid, borrower_uuid, officer_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at FROM loans WHERE uuid = $1
+SELECT uuid, borrower_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at, officer_uuid, assigned_to_uuid FROM loans WHERE uuid = $1
 `
 
 func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, error) {
@@ -22,7 +22,6 @@ func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, err
 	err := row.Scan(
 		&i.Uuid,
 		&i.BorrowerUuid,
-		&i.OfficerUuid,
 		&i.AmountIdr,
 		&i.TermMonths,
 		&i.LoanType,
@@ -30,13 +29,18 @@ func (q *Queries) GetLoanByID(ctx context.Context, argUuid uuid.UUID) (Loan, err
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OfficerUuid,
+		&i.AssignedToUuid,
 	)
 	return i, err
 }
 
 const saveLoan = `-- name: SaveLoan :exec
-INSERT INTO loans (uuid, borrower_uuid, officer_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO loans (uuid, borrower_uuid, officer_uuid, amount_idr, term_months, loan_type, interest_rate_apr, status, created_at, updated_at, assigned_to_uuid)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+ON CONFLICT (uuid) DO UPDATE
+SET assigned_to_uuid = EXCLUDED.assigned_to_uuid,
+    updated_at = EXCLUDED.updated_at
 `
 
 type SaveLoanParams struct {
@@ -50,6 +54,7 @@ type SaveLoanParams struct {
 	Status          string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	AssignedToUuid  uuid.UUID
 }
 
 func (q *Queries) SaveLoan(ctx context.Context, arg SaveLoanParams) error {
@@ -64,6 +69,7 @@ func (q *Queries) SaveLoan(ctx context.Context, arg SaveLoanParams) error {
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.AssignedToUuid,
 	)
 	return err
 }

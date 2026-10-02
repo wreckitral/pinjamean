@@ -12,6 +12,7 @@ type Application struct {
 
 type Commands struct {
 	SubmitLoan command.SubmitLoanHandler
+	ReassignLoan command.ReassignLoanHandler
 }
 
 type Queries struct {

@@ -47,6 +47,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /loans/{uuid}/assignment:
+    patch:
+      summary: Reassign a loan
+      operationId: reassignLoan
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignLoanRequest'
+      responses:
+        '204':
+          description: Loan reassigned successfully
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -81,12 +113,22 @@ components:
         loanType:
           $ref: '#/components/schemas/LoanType'
 
+    ReassignLoanRequest:
+      type: object
+      required:
+        - assignedToUuid
+      properties:
+        assignedToUuid:
+          type: string
+          format: uuid
+
     LoanResponse:
       type: object
       required:
         - uuid
         - borrowerUuid
         - officerUuid
+        - assignedToUuid
         - amountIdr
         - termMonths
         - loanType
@@ -100,6 +142,9 @@ components:
           type: string
           format: uuid
         officerUuid:
+          type: string
+          format: uuid
+        assignedToUuid:
           type: string
           format: uuid
         amountIdr:
