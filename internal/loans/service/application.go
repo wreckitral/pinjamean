@@ -21,8 +21,10 @@ func NewApplication(ctx context.Context) app.Application {
 
 	return app.Application{
 		Commands: app.Commands{
-			SubmitLoan: command.NewSubmitLoanHandler(repo, logger),
+			SubmitLoan:   command.NewSubmitLoanHandler(repo, logger),
 			ReassignLoan: command.NewReassignLoanHandler(repo, logger),
+			ApproveLoan:  command.NewApproveLoanHandler(repo, logger),
+			RejectLoan:   command.NewRejectLoanHandler(repo, logger),
 		},
 		Queries: app.Queries{
 			GetLoanByID: query.NewGetLoanByIDHandler(repo, logger),

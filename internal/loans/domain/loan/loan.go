@@ -2,6 +2,7 @@ package loan
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	commonerrors "github.com/wreckitral/pinjamean/internal/common/errors"
@@ -32,12 +33,14 @@ type Loan struct {
 	borrowerUUID   string
 	officerUUID    string
 	assignedToUUID string
+	analystUUID    string
 
 	loanAmountIDR   int64
 	termMonths      int
 	loanType        LoanType
 	interestRateAPR float64
 	status          LoanStatus
+	rejectReason    string
 	createdAt       time.Time
 	updatedAt       time.Time
 }
@@ -100,6 +103,8 @@ func (l *Loan) UUID() string             { return l.uuid }
 func (l *Loan) BorrowerUUID() string     { return l.borrowerUUID }
 func (l *Loan) OfficerUUID() string      { return l.officerUUID }
 func (l *Loan) AssignedToUUID() string   { return l.assignedToUUID }
+func (l *Loan) AnalystUUID() string      { return l.analystUUID }
+func (l *Loan) RejectionReason() string  { return l.rejectReason }
 func (l *Loan) AmountIDR() int64         { return l.loanAmountIDR }
 func (l *Loan) TermMonths() int          { return l.termMonths }
 func (l *Loan) Type() LoanType           { return l.loanType }
@@ -109,25 +114,34 @@ func (l *Loan) CreatedAt() time.Time     { return l.createdAt }
 func (l *Loan) UpdatedAt() time.Time     { return l.updatedAt }
 
 var ErrLoanStatusNotPending = commonerrors.NewIncorrectInputError("loan must be pending", "not-pending")
+var ErrMissingRejectionReason = commonerrors.NewIncorrectInputError("rejection reason is required", "reason-missing")
 
 // state-transition
-func (l *Loan) Approve() error {
+func (l *Loan) Approve(analystUUID string) error {
 	if l.status != LoanStatusPending {
 		return ErrLoanStatusNotPending
 	}
 
 	l.status = LoanStatusApproved
+	l.analystUUID = analystUUID
 	l.updatedAt = time.Now()
 
 	return nil
 }
 
-func (l *Loan) Reject() error {
+func (l *Loan) Reject(analystUUID, reason string) error {
 	if l.status != LoanStatusPending {
 		return ErrLoanStatusNotPending
 	}
 
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return ErrMissingRejectionReason
+	}
+
 	l.status = LoanStatusRejected
+	l.analystUUID = analystUUID
+	l.rejectReason = reason
 	l.updatedAt = time.Now()
 
 	return nil
@@ -149,11 +163,13 @@ func UnmarshalLoanFromDatabase(
 	borrowerUUID string,
 	officerUUID string,
 	assignedToUUID string,
+	analystUUID string,
 	amountIDR int64,
 	termMonths int,
 	loanType LoanType,
 	interestRateAPR float64,
 	status LoanStatus,
+	rejectReason string,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) (*Loan, error) {
@@ -170,8 +186,10 @@ func UnmarshalLoanFromDatabase(
 		return nil, err
 	}
 
+	l.analystUUID = analystUUID
 	l.interestRateAPR = interestRateAPR
 	l.status = status
+	l.rejectReason = rejectReason
 	l.createdAt = createdAt
 	l.updatedAt = updatedAt
 

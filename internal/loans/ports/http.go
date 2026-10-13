@@ -26,6 +26,17 @@ func NewHttpServer(app app.Application) HttpServer {
 }
 
 func (h HttpServer) SubmitLoan(w http.ResponseWriter, r *http.Request) {
+	claims, err := auth.ClaimsFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != string(account.RoleOfficer) {
+		httperr.Forbidden("not-an-officer", nil, w, r)
+		return
+	}
+
 	req := SubmitLoanRequest{}
 	if err := render.Decode(r, &req); err != nil {
 		httperr.BadRequest("invalid-request", err, w, r)
@@ -45,11 +56,6 @@ func (h HttpServer) SubmitLoan(w http.ResponseWriter, r *http.Request) {
 		TermMonths:    req.TermMonths,
 		LoanType:      domainType,
 	}
-	claims, err := auth.ClaimsFromContext(r.Context())
-	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
 	cmd.OfficerUUID = claims.AccountUUID
 
 	if err := h.app.Commands.SubmitLoan.Handle(r.Context(), cmd); err != nil {
@@ -65,6 +71,7 @@ func (h HttpServer) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid o
 	view, err := h.app.Queries.GetLoanByID.Handle(r.Context(), query.GetLoan{
 		LoanUUID: uuid.String(),
 	})
+
 	if err != nil {
 		httperr.RespondWithSlugError(err, w, r)
 		return
@@ -79,6 +86,7 @@ func (h HttpServer) ReassignLoan(w http.ResponseWriter, r *http.Request, loanUUI
 		httperr.Unauthorised("unauthenticated", err, w, r)
 		return
 	}
+
 	if claims.Role != string(account.RoleSupervisor) {
 		httperr.Forbidden("not-a-supervisor", nil, w, r)
 		return
@@ -93,6 +101,56 @@ func (h HttpServer) ReassignLoan(w http.ResponseWriter, r *http.Request, loanUUI
 	if err := h.app.Commands.ReassignLoan.Handle(r.Context(), command.ReassignLoan{
 		LoanUUID:       loanUUID.String(),
 		ReassignToUUID: req.AssignedToUuid.String(),
+	}); err != nil {
+		httperr.RespondWithSlugError(err, w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h HttpServer) ApproveLoan(w http.ResponseWriter, r *http.Request, loanUUID openapi_types.UUID) {
+	claims, err := auth.ClaimsFromContext(r.Context())
+	if err != nil {
+		httperr.Unauthorised("unauthenticated", err, w, r)
+		return
+	}
+
+	if claims.Role != string(account.RoleCreditAnalyst) {
+		httperr.Forbidden("not-a-credit-analyst", nil, w, r)
+		return
+	}
+
+	if err := h.app.Commands.ApproveLoan.Handle(r.Context(), command.ApproveLoan{
+		LoanUUID: loanUUID.String(), ApproverUUID: claims.AccountUUID,
+	}); err != nil {
+		httperr.RespondWithSlugError(err, w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h HttpServer) RejectLoan(w http.ResponseWriter, r *http.Request, loanUUID openapi_types.UUID) {
+	claims, err := auth.ClaimsFromContext(r.Context())
+	if err != nil {
+		httperr.Unauthorised("unauthenticated", err, w, r)
+		return
+	}
+
+	if claims.Role != string(account.RoleCreditAnalyst) {
+		httperr.Forbidden("not-a-credit-analyst", nil, w, r)
+		return
+	}
+
+	req := RejectLoanRequest{}
+	if err := render.Decode(r, &req); err != nil {
+		httperr.BadRequest("invalid-request", err, w, r)
+		return
+	}
+
+	if err := h.app.Commands.RejectLoan.Handle(r.Context(), command.RejectLoan{
+		LoanUUID: loanUUID.String(), AnalystUUID: claims.AccountUUID, Reason: req.Reason,
 	}); err != nil {
 		httperr.RespondWithSlugError(err, w, r)
 		return

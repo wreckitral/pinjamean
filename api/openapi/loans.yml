@@ -79,6 +79,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /loans/{uuid}/approval:
+    post:
+      summary: Approve a pending loan
+      description: The authenticated credit analyst approves the loan. Only pending loans can be approved.
+      operationId: approveLoan
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Loan approved successfully
+        '400':
+          description: Loan is not pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /loans/{uuid}/rejection:
+    post:
+      summary: Reject a pending loan
+      description: The authenticated credit analyst rejects the loan. Only pending loans can be rejected, and a reason is required.
+      operationId: rejectLoan
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectLoanRequest'
+      responses:
+        '204':
+          description: Loan rejected successfully
+        '400':
+          description: Invalid request, missing reason, or loan is not pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -121,6 +181,15 @@ components:
         assignedToUuid:
           type: string
           format: uuid
+
+    RejectLoanRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
 
     LoanResponse:
       type: object

@@ -7,12 +7,14 @@ import (
 
 type Application struct {
 	Commands Commands
-	Queries Queries
+	Queries  Queries
 }
 
 type Commands struct {
-	SubmitLoan command.SubmitLoanHandler
+	SubmitLoan   command.SubmitLoanHandler
 	ReassignLoan command.ReassignLoanHandler
+	ApproveLoan  command.ApproveLoanHandler
+	RejectLoan   command.RejectLoanHandler
 }
 
 type Queries struct {

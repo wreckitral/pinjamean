@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wreckitral/pinjamean/internal/loans/adapters/sqlcgen"
 	"github.com/wreckitral/pinjamean/internal/loans/domain/loan"
@@ -54,6 +55,14 @@ func (r *PostgresLoanRepository) SaveLoan(ctx context.Context, l *loan.Loan) err
 	if err != nil {
 		return fmt.Errorf("invalid assigned-to UUID %q: %w", l.AssignedToUUID(), err)
 	}
+	var analystUuid pgtype.UUID
+	if l.AnalystUUID() != "" {
+		parsed, err := uuid.Parse(l.AnalystUUID())
+		if err != nil {
+			return fmt.Errorf("invalid analyst UUID %q: %w", l.AnalystUUID(), err)
+		}
+		analystUuid = pgtype.UUID{Bytes: parsed, Valid: true}
+	}
 
 	return r.q.SaveLoan(ctx, sqlcgen.SaveLoanParams{
 		Uuid:            loanUuid,
@@ -67,6 +76,8 @@ func (r *PostgresLoanRepository) SaveLoan(ctx context.Context, l *loan.Loan) err
 		Status:          string(l.Status()),
 		CreatedAt:       l.CreatedAt(),
 		UpdatedAt:       l.UpdatedAt(),
+		AnalystUuid:     analystUuid,
+		RejectionReason: pgtype.Text{String: l.RejectionReason(), Valid: l.RejectionReason() != ""},
 	})
 }
 
@@ -86,14 +97,30 @@ func (r *PostgresLoanRepository) GetLoanByID(ctx context.Context, loanUUID strin
 		row.BorrowerUuid.String(),
 		row.OfficerUuid.String(),
 		row.AssignedToUuid.String(),
+		nullableUUIDString(row.AnalystUuid),
 		row.AmountIdr,
 		int(row.TermMonths),
 		loan.LoanType(row.LoanType),
 		row.InterestRateApr,
 		loan.LoanStatus(row.Status),
+		nullableTextString(row.RejectionReason),
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
+}
+
+func nullableUUIDString(value pgtype.UUID) string {
+	if !value.Valid {
+		return ""
+	}
+	return uuid.UUID(value.Bytes).String()
+}
+
+func nullableTextString(value pgtype.Text) string {
+	if !value.Valid {
+		return ""
+	}
+	return value.String
 }
 
 func NewPostgresSQLConnection() (*pgxpool.Pool, error) {
