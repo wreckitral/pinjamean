@@ -115,6 +115,7 @@ func (l *Loan) UpdatedAt() time.Time     { return l.updatedAt }
 
 var ErrLoanStatusNotPending = commonerrors.NewIncorrectInputError("loan must be pending", "not-pending")
 var ErrMissingRejectionReason = commonerrors.NewIncorrectInputError("rejection reason is required", "reason-missing")
+var ErrLoanNotFound = commonerrors.NewSlugError("loan not found", "loan-not-found")
 
 // state-transition
 func (l *Loan) Approve(analystUUID string) error {

@@ -2,7 +2,6 @@ package adapters
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/wreckitral/pinjamean/internal/loans/domain/loan"
@@ -35,5 +34,5 @@ func (r *MemoryLoanRepository) GetLoanByID(ctx context.Context, LoanUUID string)
 		return &l, nil
 	}
 
-	return nil, errors.New("loan not found on memory")
+	return nil, loan.ErrLoanNotFound
 }

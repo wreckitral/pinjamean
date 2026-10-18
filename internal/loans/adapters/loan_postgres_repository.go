@@ -2,11 +2,13 @@ package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wreckitral/pinjamean/internal/loans/adapters/sqlcgen"
@@ -89,6 +91,9 @@ func (r *PostgresLoanRepository) GetLoanByID(ctx context.Context, loanUUID strin
 
 	row, err := r.q.GetLoanByID(ctx, loanUuid)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, loan.ErrLoanNotFound
+		}
 		return nil, err
 	}
 
