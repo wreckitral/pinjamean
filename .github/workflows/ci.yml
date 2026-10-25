@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16 # match the version you run locally
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pinjamean_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/pinjamean_test?sslmode=disable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Apply migrations
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/migrations:/migrations" \
+            migrate/migrate \
+            -path=/migrations -database "$TEST_DATABASE_URL" up
+
+      # The repo has several go.mod files, and `./...` stops at module
+      # boundaries, so every module is checked separately.
+      - name: Vet, build and test every module
+        run: |
+          set -e
+          for mod in $(find . -name go.mod -not -path '*/.*/*' -exec dirname {} \;); do
+            echo "::group::$mod"
+            (
+              cd "$mod"
+              if [ -n "$(go list ./... 2>/dev/null)" ]; then
+                go vet ./... && go build ./... && go test -race -count=1 ./...
+              else
+                echo "No Go packages in $mod, skipping"
+              fi
+            )
+            echo "::endgroup::"
+          done

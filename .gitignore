@@ -3,12 +3,11 @@
 !.gitignore
 
 !*.md
+AGENTS.md
 !Makefile
 !docker-compose.yml
 !go.mod
 !go.sum
-!go.work
-!go.work.sum
 
 !*.go
 
@@ -19,6 +18,8 @@
 !*.sh
 !*.conf
 
+go.work
+go.work.sum
 .env
 .env.*
 !.env.example
