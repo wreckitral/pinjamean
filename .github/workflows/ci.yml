@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -14,6 +15,7 @@ concurrency:
 
 jobs:
   test:
+    name: test
     runs-on: ubuntu-latest
 
     services:
@@ -64,3 +66,64 @@ jobs:
             )
             echo "::endgroup::"
           done
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          install-only: true
+
+      - name: Run golangci-lint on every module
+        run: |
+          set -e
+          for mod in $(find . -name go.mod -not -path '*/.*/*' -exec dirname {} \;); do
+            echo "::group::$mod"
+            (
+              cd "$mod"
+              if [ -n "$(go list ./... 2>/dev/null)" ]; then
+                golangci-lint run ./...
+              else
+                echo "No Go packages in $mod, skipping"
+              fi
+            )
+            echo "::endgroup::"
+          done
+
+  generated-code:
+    name: generated-code
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up sqlc
+        uses: sqlc-dev/setup-sqlc@v4
+        with:
+          sqlc-version: '1.31.1'
+
+      - name: Generate code
+        run: make generate
+
+      - name: Verify generated code is up-to-date
+        run: |
+          git diff --exit-code || (echo "Error: Generated code is out of date. Run 'make generate' and commit the changes." && exit 1)
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Error: Untracked files detected after code generation. Please commit all generated files:"
+            git status --porcelain
+            exit 1
+          fi

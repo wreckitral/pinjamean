@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -14,20 +13,6 @@ import (
 	"github.com/wreckitral/pinjamean/internal/loans/adapters/sqlcgen"
 	"github.com/wreckitral/pinjamean/internal/loans/domain/loan"
 )
-
-type postgresLoan struct {
-	UUID            string    `db:"uuid"`
-	BorrowerUUID    string    `db:"borrower_uuid"`
-	OfficerUUID     string    `db:"officer_uuid"`
-	AssignedToUUID  string    `db:"assigned_to_uuid"`
-	AmountIDR       int64     `db:"amount_idr"`
-	TermMonths      int       `db:"term_months"`
-	LoanType        string    `db:"loan_type"`
-	InterestRateAPR float64   `db:"interest_rate_apr"`
-	Status          string    `db:"status"`
-	CreatedAt       time.Time `db:"created_at"`
-	UpdatedAt       time.Time `db:"updated_at"`
-}
 
 type PostgresLoanRepository struct {
 	q *sqlcgen.Queries

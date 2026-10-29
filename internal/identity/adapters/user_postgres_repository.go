@@ -14,15 +14,6 @@ import (
 	"github.com/wreckitral/pinjamean/internal/identity/domain/account"
 )
 
-type postgresUser struct {
-	UUID string `db:"uuid"`
-	Email string `db:"email"`
-	PasswordHashed string `db:"passwordHashed"`
-	Role string `db:"role"`
-    CreatedAt       time.Time `db:"created_at"`
-    UpdatedAt       time.Time `db:"updated_at"`
-}
-
 type PostgresUserRepository struct {
 	q *sqlcgen.Queries
 }

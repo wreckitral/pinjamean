@@ -23,6 +23,8 @@ type Loan struct {
 	UpdatedAt       time.Time
 	OfficerUuid     uuid.UUID
 	AssignedToUuid  uuid.UUID
+	AnalystUuid     pgtype.UUID
+	RejectionReason pgtype.Text
 }
 
 type User struct {

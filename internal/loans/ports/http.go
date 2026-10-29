@@ -77,7 +77,13 @@ func (h HttpServer) GetLoanByUuid(w http.ResponseWriter, r *http.Request, uuid o
 		return
 	}
 
-	render.Respond(w, r, view)
+	resp, err := appLoanToResponse(view)
+	if err != nil {
+		httperr.InternalError("response-mapping-failed", err, w, r)
+		return
+	}
+
+	render.Respond(w, r, resp)
 }
 
 func (h HttpServer) ReassignLoan(w http.ResponseWriter, r *http.Request, loanUUID openapi_types.UUID) {
